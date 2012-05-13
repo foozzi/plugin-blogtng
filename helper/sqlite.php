@@ -1,7 +1,7 @@
 <?php
 /**
  * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
- * @author     Andreas Gohr <andi@splitbrain.org>
+ * @author     Andreas Gohr <andi@splitbrain.org> and fork for sqlite3 foozzi <foozzi@xakep.ru>
  */
 // must be run within Dokuwiki
 if(!defined('DOKU_INC')) die();
@@ -24,7 +24,7 @@ class helper_plugin_blogtng_sqlite extends DokuWiki_Plugin {
             if(function_exists('dl')) @dl($prefix . 'sqlite.' . PHP_SHLIB_SUFFIX);
         }
 
-        if(!function_exists('sqlite_open')){
+        if(!function_exists('SQLite3::open')){
             msg('blogtng plugin: SQLite support missing in this PHP install - plugin will not work',-1);
         }
     }
@@ -41,7 +41,7 @@ class helper_plugin_blogtng_sqlite extends DokuWiki_Plugin {
         $init   = (!@file_exists($dbfile) || ((int) @filesize($dbfile)) < 3);
 
         $error='';
-        $this->db = sqlite_open($dbfile, 0666, $error);
+        $this->db = SQLite3::open($dbfile, 0666, $error);
         if(!$this->db){
             msg("blogtng plugin: failed to open SQLite database ($error)",-1);
             return false;
@@ -104,9 +104,9 @@ class helper_plugin_blogtng_sqlite extends DokuWiki_Plugin {
             $s = preg_replace('!^\s*--.*$!m', '', $s);
             $s = trim($s);
             if(!$s) continue;
-            $res = sqlite_query($this->db,"$s;");
+            $res = SQLite3::query($this->db,"$s;");
             if ($res === false) {
-                sqlite_query($this->db, 'ROLLBACK TRANSACTION');
+                SQLite3::query($this->db, 'ROLLBACK TRANSACTION');
                 return false;
             }
         }
@@ -157,12 +157,12 @@ class helper_plugin_blogtng_sqlite extends DokuWiki_Plugin {
 
         // execute query
         $err = '';
-        $res = @sqlite_query($this->db,$sql,SQLITE_ASSOC,$err);
+        $res = @SQLite3::query($this->db,$sql,SQLITE3_ASSOC,$err);
         if($err){
             msg($err.' - '.hsc($sql),-1);
             return false;
         }elseif(!$res){
-            msg(sqlite_error_string(sqlite_last_error($this->db)).
+            msg(sqlite3_error_string(sqlite3_last_error($this->db)).
                 ' - '.hsc($sql),-1);
             return false;
         }
@@ -175,9 +175,9 @@ class helper_plugin_blogtng_sqlite extends DokuWiki_Plugin {
      */
     function res2arr($res){
         $data = array();
-        if(!sqlite_num_rows($res)) return $data;
-        sqlite_rewind($res);
-        while(($row = sqlite_fetch_array($res)) !== false){
+        if(!SQLite3::numRows($res)) return $data;
+        SQLiteResult::rewind($res);
+        while(($row = sqlite3_fetch_array($res)) !== false){
             $data[] = $row;
         }
         return $data;
@@ -191,7 +191,7 @@ class helper_plugin_blogtng_sqlite extends DokuWiki_Plugin {
         if(!@sqlite_seek($res,$rownum)){
             return false;
         }
-        return sqlite_fetch_array($res);
+        return SQLite3Result::fetchArray($res);
     }
 
 
@@ -208,7 +208,7 @@ class helper_plugin_blogtng_sqlite extends DokuWiki_Plugin {
      * with quotes
      */
     function quote_string($string){
-        return "'".sqlite_escape_string($string)."'";
+        return "'".SQLite3::escapeString($string)."'";
     }
 
 }
